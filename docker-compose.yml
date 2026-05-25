@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: library_user
+      POSTGRES_PASSWORD: library_pass
+      POSTGRES_DB: library_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U library_user -d library_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  grpc-server:
+    build: ./backend
+    command: sh entrypoint.sh
+    ports:
+      - "50051:50051"
+    environment:
+      DATABASE_URL: postgresql://library_user:library_pass@db:5432/library_db
+      GRPC_PORT: "50051"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  gateway:
+    build: ./backend
+    command: uvicorn gateway:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      GRPC_SERVER: grpc-server:50051
+    depends_on:
+      - grpc-server
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - gateway
+
+volumes:
+  postgres_data:

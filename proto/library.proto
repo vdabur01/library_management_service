@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+package library;
+
+// ─── Book ─────────────────────────────────────────────────────────────────────
+
+message Book {
+  int32  id               = 1;
+  string title            = 2;
+  string author           = 3;
+  string isbn             = 4;
+  string genre            = 5;
+  int32  published_year   = 6;
+  int32  total_copies     = 7;
+  int32  available_copies = 8;
+  string created_at       = 9;
+  string updated_at       = 10;
+}
+
+message CreateBookRequest {
+  string title          = 1;
+  string author         = 2;
+  string isbn           = 3;
+  string genre          = 4;
+  int32  published_year = 5;
+  int32  total_copies   = 6;
+}
+
+message UpdateBookRequest {
+  int32  id             = 1;
+  string title          = 2;
+  string author         = 3;
+  string isbn           = 4;
+  string genre          = 5;
+  int32  published_year = 6;
+  int32  total_copies   = 7;
+  // Which fields to actually update (field names as strings)
+  repeated string update_mask = 8;
+}
+
+message GetBookRequest    { int32 id = 1; }
+message DeleteBookRequest { int32 id = 1; }
+message DeleteBookResponse { string message = 1; }
+message ListBooksRequest  { int32 skip = 1; int32 limit = 2; }
+message ListBooksResponse { repeated Book books = 1; }
+
+service BookService {
+  rpc CreateBook (CreateBookRequest) returns (Book);
+  rpc GetBook    (GetBookRequest)    returns (Book);
+  rpc UpdateBook (UpdateBookRequest) returns (Book);
+  rpc DeleteBook (DeleteBookRequest) returns (DeleteBookResponse);
+  rpc ListBooks  (ListBooksRequest)  returns (ListBooksResponse);
+}
+
+// ─── Member ───────────────────────────────────────────────────────────────────
+
+message Member {
+  int32  id         = 1;
+  string name       = 2;
+  string email      = 3;
+  string phone      = 4;
+  string address    = 5;
+  bool   is_active  = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message CreateMemberRequest {
+  string name    = 1;
+  string email   = 2;
+  string phone   = 3;
+  string address = 4;
+}
+
+message UpdateMemberRequest {
+  int32  id        = 1;
+  string name      = 2;
+  string email     = 3;
+  string phone     = 4;
+  string address   = 5;
+  bool   is_active = 6;
+  repeated string update_mask = 7;
+}
+
+message GetMemberRequest     { int32 id = 1; }
+message ListMembersRequest   { int32 skip = 1; int32 limit = 2; }
+message ListMembersResponse  { repeated Member members = 1; }
+
+service MemberService {
+  rpc CreateMember (CreateMemberRequest) returns (Member);
+  rpc GetMember    (GetMemberRequest)    returns (Member);
+  rpc UpdateMember (UpdateMemberRequest) returns (Member);
+  rpc ListMembers  (ListMembersRequest)  returns (ListMembersResponse);
+}
+
+// ─── Lending ──────────────────────────────────────────────────────────────────
+
+enum LendingStatus {
+  LENDING_STATUS_UNSPECIFIED = 0;
+  LENDING_STATUS_ACTIVE      = 1;
+  LENDING_STATUS_RETURNED    = 2;
+  LENDING_STATUS_OVERDUE     = 3;
+}
+
+message Lending {
+  int32         id           = 1;
+  int32         book_id      = 2;
+  int32         member_id    = 3;
+  string        borrowed_at  = 4;
+  string        due_date     = 5;
+  string        returned_at  = 6;
+  double        fine_amount  = 7;
+  LendingStatus status       = 8;
+  Book          book         = 9;
+  Member        member       = 10;
+  string        created_at   = 11;
+}
+
+message BorrowBookRequest       { int32 book_id = 1; int32 member_id = 2; }
+message CompleteLendingRequest  { int32 lending_id = 1; }
+message GetLendingRequest       { int32 id = 1; }
+message ListMemberLendingsRequest { int32 member_id = 1; }
+
+message ListLendingsRequest {
+  LendingStatus status_filter = 1;
+  int32         member_id     = 2;
+  int32         skip          = 3;
+  int32         limit         = 4;
+}
+
+message ListLendingsResponse { repeated Lending lendings = 1; }
+
+message GetStatsRequest {}
+message StatsResponse {
+  int32 total_books       = 1;
+  int32 total_members     = 2;
+  int32 active_lendings   = 3;
+  int32 overdue_lendings  = 4;
+}
+
+service LendingService {
+  rpc BorrowBook          (BorrowBookRequest)         returns (Lending);
+  rpc CompleteLending     (CompleteLendingRequest)    returns (Lending);
+  rpc GetLending          (GetLendingRequest)         returns (Lending);
+  rpc ListLendings        (ListLendingsRequest)       returns (ListLendingsResponse);
+  rpc ListOverdueLendings (GetStatsRequest)           returns (ListLendingsResponse);
+  rpc ListMemberLendings  (ListMemberLendingsRequest) returns (ListLendingsResponse);
+  rpc GetStats            (GetStatsRequest)           returns (StatsResponse);
+}
